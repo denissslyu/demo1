@@ -47,5 +47,45 @@ public interface UserLoginService {
      */
     List<String> selectBuidbyUserId(int userid);
 
+    /**
+     * 验证通行证(2小时之内)
+     *
+     * @param passport 通行证
+     * @return
+     */
+    Integer selectUseridbyPassport(String passport);
+
+    /**
+     * 生成通行证
+     *
+     * @param userid
+     * @return
+     */
+    String generatePassport(int userid);
+
+    /**
+     * 注销通行证
+     *
+     * @param userid
+     * @return
+     */
+    void deletePassportbyUserid(int userid);
+
+    /**
+     * 通过userid查询user实体
+     *
+     * @param userid
+     * @return
+     */
+    User selectUserbyUserid(int userid);
+
+    /**
+     * 通过name查询userid
+     *
+     * @param name
+     * @return
+     */
+    List<String> selectUseridbyName(String name);
+
 }
 

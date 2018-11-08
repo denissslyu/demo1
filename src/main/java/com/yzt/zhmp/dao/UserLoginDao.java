@@ -2,8 +2,7 @@ package com.yzt.zhmp.dao;
 
 
 import com.yzt.zhmp.beans.User;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.*;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -61,4 +60,45 @@ public interface UserLoginDao {
     @Select("SELECT buID FROM b_fileUser WHERE usrID=#{userid}")
     List<String> selectBuidbyUserId(int userid);
 
+    /**
+     * 验证通行证(2小时之内)
+     *
+     * @param passport 通行证
+     * @return
+     */
+    @Select("SELECT usrID FROM d_passport WHERE passport=#{passport} "
+            + "AND createtime>=(NOW() - interval 2 hour);")
+    Integer selectUseridbyPassport(String passport);
+
+    /**
+     * 生成通行证
+     *
+     * @param passport 通行证
+     * @return
+     */
+    @Insert("INSERT INTO d_passport (passport,usrID,createtime) " +
+            "values(#{passport},#{userid},NOW())")
+    void generatePassport(@Param("passport") String passport,@Param("userid") int userid);
+
+    /**
+     * 注销通行证
+     *
+     * @param userid 用户id
+     * @return
+     */
+    @Delete("DELETE FROM d_passport WHERE usrID=#{userid}"
+            + "AND createtime>=(NOW() - interval 2 hour);")
+    void deletePassportbyUserid(int userid);
+
+    /**
+     * 通过userid查询user实体
+     *
+     * @param userid 用户id
+     * @return
+     */
+    @Select("SELECT * FROM d_user WHERE usrID=#{userid}")
+    User selectUserbyUserid(int userid);
+
+    @Select("SELECT usrID FROM d_user WHERE name=#{name}")
+    List<String> selectUseridbyName(String name);
 }

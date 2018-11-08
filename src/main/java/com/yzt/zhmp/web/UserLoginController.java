@@ -1,20 +1,35 @@
 package com.yzt.zhmp.web;
 
+import com.aliyuncs.DefaultAcsClient;
+import com.aliyuncs.IAcsClient;
+import com.aliyuncs.dysmsapi.model.v20170525.SendSmsRequest;
+import com.aliyuncs.dysmsapi.model.v20170525.SendSmsResponse;
+import com.aliyuncs.exceptions.ClientException;
+import com.aliyuncs.profile.DefaultProfile;
+import com.aliyuncs.profile.IClientProfile;
 import com.yzt.zhmp.beans.Cbuilding;
 import com.yzt.zhmp.beans.User;
+import com.yzt.zhmp.service.BackstageService;
 import com.yzt.zhmp.service.CollectionSystemService;
 import com.yzt.zhmp.service.SystemService;
 import com.yzt.zhmp.service.UserService.UserLoginService;
 import com.yzt.zhmp.utils.MD5Utils;
+import net.sf.json.JSONObject;
+import org.apache.commons.lang.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import sun.security.provider.MD5;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author wang
@@ -27,6 +42,9 @@ public class UserLoginController {
 
     @Autowired
     private SystemService systemService;
+
+    @Autowired
+    private BackstageService backstageService;
 
     @Autowired
     private CollectionSystemService collectionSystemService;
@@ -121,14 +139,97 @@ public class UserLoginController {
         //显示农户信息
         //Cbuilding cbuilding = collectionSystemService.selectBuildingByid(17);
         //model.addAttribute("building", cbuilding);
+
+        //生成passport
+        session.setAttribute("passport", userLoginService.generatePassport(usrId));
+
         session.setAttribute("existUser1", existUser1);
 
         return "WEB-INF/a/newsystem";
     }
 
+    @RequestMapping("/checkPassport")
+    public Integer checkPassport(String passport){
+        if(null != userLoginService.selectUseridbyPassport(passport)) {
+            return userLoginService.selectUseridbyPassport(passport);
+        }
+        return 0;
+    }
+
+    @RequestMapping("/deletePassport")
+    public void deletePassport(Integer usrId){
+        userLoginService.deletePassportbyUserid(usrId);
+    }
+
+
+    @RequestMapping("/getUserInfobyUserid")
+    public void getUserInfobyUserid(int userid, HttpServletResponse response)throws IOException {
+        User user = userLoginService.selectUserbyUserid(userid);
+        response.getWriter().write(user.toString());
+    }
+
     @RequestMapping("/loginOut")
     public String loginOut(HttpServletRequest request) {
         request.getSession().removeAttribute("existUser1");
+        request.getSession().removeAttribute("passport");
         return "WEB-INF/a/newsystem";
+    }
+
+    @RequestMapping("/getVerificationCode")
+    public void getVerifivationCode(String telephone, HttpServletResponse response) throws ClientException, IOException {
+        String vcode = RandomStringUtils.randomNumeric(4);
+        SendSmsResponse sendSmsResponse = sendSms(telephone,vcode);
+        if(null == sendSmsResponse){
+            //catch clientexception
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("msg","获取验证码失败");
+            response.getWriter().write(jsonObject.toString());
+            return;
+        }
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("VCode",vcode);
+        jsonObject.put("ResultCode",sendSmsResponse.getCode());
+        jsonObject.put("Message",sendSmsResponse.getMessage());
+        jsonObject.put("RequestId",sendSmsResponse.getRequestId());
+        jsonObject.put("BizId",sendSmsResponse.getBizId());
+        response.getWriter().write(jsonObject.toString());
+    }
+
+    //阿里短信api
+    public static SendSmsResponse sendSms(String telephone,String vcode) throws ClientException {
+        System.setProperty("sun.net.client.defaultConnectTimeout", "10000");
+        System.setProperty("sun.net.client.defaultReadTimeout", "10000");
+        IClientProfile profile = DefaultProfile.getProfile("cn-hangzhou", "LTAIt2ATSvJaZlQC", "EDuw7M6e4dg5C02Fi8ZRHATi98UB8s");
+        DefaultProfile.addEndpoint("cn-hangzhou", "cn-hangzhou", "Dysmsapi", "dysmsapi.aliyuncs.com");
+        IAcsClient acsClient = new DefaultAcsClient(profile);
+        SendSmsRequest request = new SendSmsRequest();
+        request.setPhoneNumbers(telephone);
+        request.setSignName("智慧门牌");
+        request.setTemplateCode("SMS_150578100");
+        request.setTemplateParam("{\"code\":\""+ vcode +"\"}");
+        request.setOutId("yourOutId");
+        try {
+            SendSmsResponse sendSmsResponse = acsClient.getAcsResponse(request);
+            return sendSmsResponse;
+        }catch (ClientException e){
+            return null;
+        }
+    }
+
+    @RequestMapping("/userRegist")
+    public void userRegist(String telephone,String password,HttpServletResponse response) throws IOException {
+        if(null != userLoginService.selectUseridbyName(telephone)){
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("msg","注册失败，此账号已被使用。");
+            response.getWriter().write(jsonObject.toString());
+            return;
+        }
+        User user = new User();
+        user.setName(telephone);
+        user.setPassword(MD5Utils.md5(password));
+        backstageService.registered(user);
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("msg","注册成功，正在跳转到登录界面。");
+
     }
 }
