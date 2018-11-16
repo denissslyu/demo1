@@ -186,8 +186,9 @@ public class UserLoginController {
             response.getWriter().write(jsonObject.toString());
             return;
         }
+        userLoginService.generateVerificationCode(vcode,telephone);
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("VCode",vcode);
+        jsonObject.put("msg","获取验证码成功");
         jsonObject.put("ResultCode",sendSmsResponse.getCode());
         jsonObject.put("Message",sendSmsResponse.getMessage());
         jsonObject.put("RequestId",sendSmsResponse.getRequestId());
@@ -217,10 +218,16 @@ public class UserLoginController {
     }
 
     @RequestMapping("/userRegist")
-    public void userRegist(String telephone,String password,HttpServletResponse response) throws IOException {
+    public void userRegist(String telephone,String password,String vcode,HttpServletResponse response) throws IOException {
         if(null != userLoginService.selectUseridbyName(telephone)){
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("msg","注册失败，此账号已被使用。");
+            response.getWriter().write(jsonObject.toString());
+            return;
+        }
+        if(!telephone.equals(userLoginService.checkVerificationCode(vcode,telephone))){
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("msg","注册失败，手机验证码错误。");
             response.getWriter().write(jsonObject.toString());
             return;
         }

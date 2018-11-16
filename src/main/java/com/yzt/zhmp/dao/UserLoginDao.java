@@ -99,6 +99,32 @@ public interface UserLoginDao {
     @Select("SELECT * FROM d_user WHERE usrID=#{userid}")
     User selectUserbyUserid(int userid);
 
+    /**
+     * 通过name查询userid
+     *
+     * @param name
+     * @return
+     */
     @Select("SELECT usrID FROM d_user WHERE name=#{name}")
     List<String> selectUseridbyName(String name);
+
+    /**
+     * 生成手机验证码记录
+     *
+     * @param vcode,telephone
+     * @return
+     */
+    @Insert("INSERT INTO d_verification (name,verificationCode,createtime) " +
+            "values(#{telephone},#{vcode},NOW())")
+    void generateVerificationCode(@Param("vcode") String vcode,@Param("telephone") String telephone);
+
+    /**
+     * 手机验证码验证(5分钟之内)
+     *
+     * @param vcode,telephone
+     * @return
+     */
+    @Select("SELECT name FROM d_verification WHERE name=#{telephone} AND verificationCode=#{vcode} "
+            + "AND createtime>=(NOW() - interval 5 minute);")
+    List<String> checkVerificationCode(@Param("vcode") String vcode,@Param("telephone") String telephone);
 }

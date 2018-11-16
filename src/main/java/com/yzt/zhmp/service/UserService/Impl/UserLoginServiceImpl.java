@@ -72,4 +72,16 @@ public class UserLoginServiceImpl implements UserLoginService {
 
     @Override
     public List<String> selectUseridbyName(String name){ return userLoginDao.selectUseridbyName(name);}
+
+    @Override
+    public void generateVerificationCode(String vcode,String telephone){
+        userLoginDao.generateVerificationCode(vcode,telephone);
+    }
+
+    @Override
+    public List<String> checkVerificationCode(String vcode,String telephone){
+        return userLoginDao.checkVerificationCode(vcode,telephone);
+    }
+
+
 }

@@ -87,5 +87,21 @@ public interface UserLoginService {
      */
     List<String> selectUseridbyName(String name);
 
+    /**
+     * 生成手机验证码
+     *
+     * @param vcode,telephone
+     * @return
+     */
+    void generateVerificationCode(String vcode,String telephone);
+
+    /**
+     * 查询手机验证码记录
+     *
+     * @param vcode,telephone
+     * @return
+     */
+    List<String> checkVerificationCode(String vcode,String telephone);
+
 }
 
